@@ -1,0 +1,31 @@
+alias: Update Screen2 Message1
+sequence:
+  - action: input_text.set_value
+    metadata: {}
+    data:
+      value: "{{ now().strftime('%H:%M')  }}  {{ msgtext }}"
+    target:
+      entity_id: input_text.screen2_msg1
+  - action: light.turn_on
+    metadata: {}
+    data:
+      transition: 1
+      rgb_color:
+        - 255
+        - 92
+        - 51
+      brightness_pct: 100
+    target:
+      entity_id: light.esphome_web_45b0c4_led
+  - delay:
+      hours: 0
+      minutes: 0
+      seconds: 5
+      milliseconds: 0
+  - action: light.turn_off
+    metadata: {}
+    data:
+      transition: 1
+    target:
+      entity_id: light.esphome_web_45b0c4_led
+description: ""
