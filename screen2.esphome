@@ -1,7 +1,10 @@
 #
-# 20240904
+# 20250320 - updated to work with ESPHOME 2025.2.2
 # Hardware ESP32-3248S035 capacitive screen e.g. https://www.aliexpress.com/item/1005005542773413.html
 # note - there is no PSRAM in this model, so LVGL is needed for display
+# 20250320 disabled debug as it seems to use up memory
+# some minor tweaks to work with newer esphome
+# general tidy up
 #
 substitutions:
   name: esphome-web-45b0c4
@@ -15,7 +18,6 @@ substitutions:
 #  
 #
 wifi:
-  ap: {}
   networks:
   - ssid: !secret wifi1_ssid
     password: !secret wifi1_pass
@@ -24,23 +26,12 @@ wifi:
   - ssid: !secret wifi3_ssid
     password: !secret wifi3_pass
 #
-esphome:
-  name: ${name}
-  friendly_name: ${friendly_name}
-  min_version: 2024.6.0
-  name_add_mac_suffix: false
-  project:
-    name: esphome.web
-    version: dev
 ##
+esphome:
+  name: officedisplay
+  min_version: 2025.2.2
 esp32:
   board: esp32dev
-  framework:
-    type: arduino
-  #flash_size: 4MB
-#
-debug:
-  update_interval: 60s
 #
 logger:
   level: WARN
@@ -50,15 +41,16 @@ web_server:
 
 api:
 
-external_components:
-  - source: github://pr#6363
-    refresh: 10min
-    components: [lvgl]
+# disabled when updating for 2025
+#external_components:
+#  - source: github://pr#6363
+#    refresh: 10min
+#    components: [lvgl]
 #
 ota:
   - platform: esphome
 
-captive_portal:
+# captive_portal:
 
 spi:
   - id: lcd
@@ -73,40 +65,16 @@ i2c:
   id: bus_a
 #
 font:
-  - file: "gfonts://Gabarito@700"
-    id: gabarito50
-    size: 50
-    bpp: 4
-    extras:
-      - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
-        glyphs: [
-          "\U000F004B",
-          "\U0000f0ed",
-          "\U000F006E",
-          "\U000F012C",
-          "\U000F179B",
-          "\U000F0748",
-          "\U000F1A1B",
-          "\U000F02DC",
-          "\U000F0A02",
-          "\U000F035F",
-          "\U000F0156",
-          "\U000F0C5F", 
-          "\U000f0084",
-          "\U000f0091",
-          ]
-  - file: "gfonts://Gabarito@700"
-    id: gabarito40
+  
+  - file: 'fonts/AlmaMono-Regular.otf'
+    id: almamono40
     size: 40
     bpp: 4
-  - file: "gfonts://Gabarito@700"
-    id: gabarito15
-    size: 15
+  - file: 'fonts/AlmaMono-Regular.otf'
+    id: almamono18
+    size: 18
     bpp: 4
-  - file: "gfonts://Gabarito@700"
-    id: gabarito30
-    size: 30
-    bpp: 4
+
   - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
     id: weather70
     size: 70
@@ -155,11 +123,6 @@ font:
       "\U000F0210", # mdi-fan
       "\U000F0737", # mdi-up
       ]          
- 
-  - file: "gfonts://Roboto@400"
-    id: roboto20
-    size: 20
-    bpp: 4          
 #
 color:
   - id: my_red
@@ -200,13 +163,13 @@ color:
     blue: 0%
 #
 sensor:
-  - platform: debug
-    free:
-      name: "Heap Free"
-    loop_time:
-      name: "Loop Time"
-    psram:
-      name: "Free PSRAM"
+#  - platform: debug
+#    free:
+#      name: "Heap Free"
+ #   loop_time:
+ #     name: "Loop Time"
+#    psram:
+      #name: "Free PSRAM"
 #
 binary_sensor:
   - platform: status
@@ -219,11 +182,11 @@ globals:
     initial_value: ""
 #
 text_sensor:
-  - platform: debug
-    device:
-      name: "Device Info"
-    reset_reason:
-      name: "Reset Reason"  
+#  - platform: debug
+#    device:
+#      name: "Device Info"
+#    reset_reason:
+#      name: "Reset Reason"  
   - platform: template
     # name: Uptime Human Readable
     id: uptime_human
@@ -240,6 +203,15 @@ text_sensor:
               text:
                 format: "%s"
                 args: [ 'id(ip_address).get_state().c_str()' ]      
+  
+  - platform: homeassistant
+    internal: True
+    entity_id: sensor.ist
+    id: ha_clock_ist
+  - platform: homeassistant
+    internal: True
+    entity_id: sensor.time
+    id: ha_clock_local
   - platform: homeassistant
     internal: True
     entity_id: sensor.homeweather_realfeel_temperature_max_0d
@@ -374,6 +346,9 @@ touchscreen:
   platform: gt911
   id: my_touch
   update_interval: 50ms
+  transform:
+    mirror_y: true 
+    mirror_x: true 
   on_touch:
     - light.turn_on: back_light
     - lambda: |-
@@ -383,15 +358,15 @@ touchscreen:
               touch.x_raw,
               touch.y_raw
               );
-
-#  transform:
-#      swap_xy: true
-#      mirror_x: false
-#      mirror_y: false              
+#
 # Exposed switches.
 switch:
   - platform: restart
     name: Restart
+  - platform: template
+    name: "Trigger Office Mode"
+    id: virtual_button_office_mode
+    optimistic: true    
 #
 #
 #font:
@@ -402,6 +377,7 @@ display:
     spi_id: lcd
     cs_pin: 15
     dc_pin: 2
+    invert_colors: false
     rotation: 180
     dimensions: 320x480
     update_interval: never
@@ -423,8 +399,8 @@ lvgl:
   align: center
   touchscreens:
     - my_touch  
-  displays:
-    - display_id: my_display
+#  displays:
+#    - display_id: my_display
   style_definitions:
   - id: header_footer
     bg_color: 0x000000
@@ -439,7 +415,8 @@ lvgl:
     text_color: 0x0000FF
     width: 100%
     height: 35      
-  buffer_size: 25%
+  #buffer_size: 25%
+  buffer_size: 15%
   disp_bg_color: 0x000000
   top_layer:
     bg_color: 0x000000
@@ -525,6 +502,15 @@ lvgl:
                 #text_font: montserrat_20
                 text_font: light32
                 text: "\U000F0769"                
+            - label:
+                # text_align: center
+                text: "long text long textlong text \n new line? I wonder \n long text long text long text"
+                id: test_long_text
+                x: 0
+                y: 100
+                long_mode: wrap
+                height: SIZE_CONTENT
+                text_color: 0xFFFF00
 #
     - id: lovesymbol
       bg_opa: COVER
@@ -537,10 +523,10 @@ lvgl:
             height: 100%
             width: 100%
             widgets:
-            - image:
-                src: lovesymbol3
-                bg_opa: COVER
-                align: center
+            #- image:
+            #    src: lovesymbol3
+            #    bg_opa: COVER
+            #    align: center
 #
     - id: page2
       widgets:
@@ -586,9 +572,14 @@ lvgl:
                               data:
                                 entity_id: light.office_ceiling
                     - id: page3_button_2
-                      text: "\uF04C"
+                      #text: "\uF04C"
+                      text: "Office Mode"
                       control:
-                        checkable: true
+                        popover: true                                        
+                      on_click:
+                        then:
+                          - logger.log: "Button 2 Office Mode clicked"
+                          - switch.toggle: virtual_button_office_mode
                     - id: page3_button_3
                       #text: "\uF04C"
                       text: "Strip"
@@ -615,41 +606,49 @@ lvgl:
             widgets:
             - label:
                 text_align: left
-                text_font: montserrat_40
+                #text_font: montserrat_40
+                text_font: almamono40
                 id: page1_time_utc
                 text: 'UTC Time'
                 text_color: 0xFFFF00
                 x: 1
-                y: 10
+                y: 8
             - label:
                 text_align: left
-                text_font: montserrat_40
-                id: page1_time_hkg
+                text_font: almamono40
+                id: page1_time_ist
+                text: 'IST Time'
+                text_color: 0xFFFF00
+                x: 1
+                y: 49
+
+            - label:
+                text_align: left
+                text_font: almamono40
+                id: page1_time_local
                 text: 'HKG Time'
                 text_color: 0xFFFF00
                 x: 1
-                y: 51
+                y: 90
             - label:
-                #id: ip_address_label
                 text_align: right
                 text: 'n/a'
                 text_font: montserrat_18
                 id: page1_weather_line1
                 text_color: 0xFFFF00
                 x: 1
-                y: 92
+                y: 130
             - label:
-                #id: ip_address_label
                 text_align: right
                 text: 'n/a'
                 text_font: montserrat_18
                 id: page1_weather_line2
                 text_color: 0xFFFF00
                 x: 1
-                y: 110
+                y: 150
             - label:
                 x: 1
-                y: 131
+                y: 171
                 height: size_content
                 width: 100%
                 long_mode: wrap
@@ -665,7 +664,7 @@ lvgl:
                 id: page1_yahoofinance_2800_hk_last
                 text_color: 0xFFFF00
                 text: 'N/A'
-                text_font: montserrat_18
+                text_font: almamono18
             - label:
                 x: 1
                 y: 260
@@ -675,7 +674,7 @@ lvgl:
                 id: page1_yahoofinance_2386_hk_last
                 text_color: 0xFFFF00
                 text: 'N/A'
-                text_font: montserrat_18                
+                text_font: almamono18                
             - label:
                 x: 1
                 y: 280
@@ -685,7 +684,7 @@ lvgl:
                 id: page1_yahoofinance_2388_hk_last
                 text_color: 0xFFFF00
                 text: 'N/A'
-                text_font: montserrat_18
+                text_font: almamono18
             - label:
                 x: 1
                 y: 300
@@ -695,7 +694,7 @@ lvgl:
                 id: page1_yahoofinance_audhkd_last
                 text_color: 0xFFFF00
                 text: 'N/A'
-                text_font: montserrat_18
+                text_font: almamono18
             - label:
                 x: 1
                 y: 320
@@ -705,7 +704,7 @@ lvgl:
                 id: page1_yahoofinance_vdhg_asx_last
                 text_color: 0xFFFF00
                 text: 'N/A'
-                text_font: montserrat_18                
+                text_font: almamono18                
             - label:
                 x: 1
                 y: 370
@@ -737,44 +736,57 @@ script:
           id: loading_nice_node_status
           text:
             format: "%s"
-            args: [ 'id(nice_node_status).c_str()' ]            
+            args: [ 'id(nice_node_status).c_str()' ]
 #
 # Page 1 Page 1 Page 1 Page 1 Page 1 Page 1 Page 1 Page 1 
 #
+      - lvgl.label.update:
+          id: page1_time_ist
+          text:
+            format: "IST %s"
+            args: [ 'id(ha_clock_ist).state.c_str()' ]
       - lvgl.label.update:
           id: page1_time_utc
           text:
             format: "UTC %02d:%02d"
             args: [ 'id(sntp_time).utcnow().hour', 'id(sntp_time).utcnow().minute' ]            
       - lvgl.label.update:
-          id: page1_time_hkg
+          id: page1_time_local
           text:
-            format: "HKG %02d:%02d"
-            args: [ 'id(homeassistant_time).now().hour', 'id(homeassistant_time).now().minute', 'id(homeassistant_time).now().second' ]            
+            format: "HKG %s"
+            args: [ 'id(ha_clock_local).state.c_str()' ]
+
       - lvgl.label.update:
           id: page1_weather_line1
           text:
-            format: "Today Min %s°C Max %s°C"
+            format: "Today %s°C to %s°C"
             args: [ 'id(homeweather_realfeel_temperature_min_0d).state.c_str()', 'id(homeweather_realfeel_temperature_max_0d).state.c_str()' ]            
       - lvgl.label.update:
           id: page1_weather_line2
           text:
-            format: "Tomorrow Min %s°C Max %s°C"
+            format: "Tomorrow %s°C to %s°C"
             args: [ 'id(homeweather_realfeel_temperature_min_1d).state.c_str()', 'id(homeweather_realfeel_temperature_max_1d).state.c_str()' ]           
+      - lvgl.label.update:
+          id: test_long_text
+          text:
+            format: "Today %s°C to %s°C \n Tomorrow Min %s°C Max %s°C"
+            args: [ 'id(homeweather_realfeel_temperature_min_0d).state.c_str()', 'id(homeweather_realfeel_temperature_max_0d).state.c_str()', 'id(homeweather_realfeel_temperature_min_1d).state.c_str()', 'id(homeweather_realfeel_temperature_max_1d).state.c_str()' ]            
+
+
       - lvgl.label.update:
           id: page1_yahoofinance_2800_hk_last
           text:
-            format: "2800 %s"
+            format: "2800   %s"
             args: [ 'id(yahoofinance_2800_hk_last).state.c_str()' ]
       - lvgl.label.update:
           id: page1_yahoofinance_2386_hk_last
           text:
-            format: "2386 %s"
+            format: "2386   %s"
             args: [ 'id(yahoofinance_2386_hk_last).state.c_str()' ]            
       - lvgl.label.update:
           id: page1_yahoofinance_2388_hk_last
           text:
-            format: "2388 %s"
+            format: "2388   %s"
             args: [ 'id(yahoofinance_2388_hk_last).state.c_str()' ]                        
       - lvgl.label.update:
           id: page1_yahoofinance_audhkd_last
@@ -784,7 +796,7 @@ script:
       - lvgl.label.update:
           id: page1_yahoofinance_vdhg_asx_last
           text:
-            format: "VDHG %s"
+            format: "VDHG   %s"
             args: [ 'id(yahoofinance_VDHG_ASX_last).state.c_str()' ]            
 #
 # Update each minute ##################
@@ -802,6 +814,9 @@ script:
             args: [ 'id(text_msg1).state.c_str()' ]
 
 time:
+#  - platform: sntp
+#    timezone: Asia/Kolkata
+#    id: india_time  
   - platform: sntp
     id: sntp_time
     on_time:
@@ -841,9 +856,9 @@ time:
               #id: page3_image
               #src: img_nc_front
           
-image:
-  - file: lovesymbol3.png
-    id: lovesymbol3
-    #resize: 240x160
-    type: RGB565
+#image:
+#  - file: lovesymbol3.png
+#    id: lovesymbol3
+#    #resize: 240x160
+#    type: RGB565
 #
