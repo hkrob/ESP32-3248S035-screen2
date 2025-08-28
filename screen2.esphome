@@ -1,14 +1,14 @@
 #
-# 20250320 - updated to work with ESPHOME 2025.2.2
+# 20250320 - updated to work with ESPHOME 2025.7
 # Hardware ESP32-3248S035 capacitive screen e.g. https://www.aliexpress.com/item/1005005542773413.html
 # note - there is no PSRAM in this model, so LVGL is needed for display
-# 20250320 disabled debug as it seems to use up memory
-# some minor tweaks to work with newer esphome
-# general tidy up
+# 
+# 20250828 - big tidy up
+#
 #
 substitutions:
-  name: esphome-web-45b0c4
-  friendly_name: esp32-rob2
+  name: officeCYD
+  friendly_name: officeCYD
   lightbulb:     "\U000F0335"
   ceiling_light: "\U000F0769"
   floor_lamp:    "\U000F08DD"
@@ -29,7 +29,7 @@ wifi:
 ##
 esphome:
   name: officedisplay
-  min_version: 2025.2.2
+  min_version: 2025.7.0
 esp32:
   board: esp32dev
 #
@@ -38,20 +38,12 @@ logger:
 #
 web_server:
   port: 80  
-
-api:
-
-# disabled when updating for 2025
-#external_components:
-#  - source: github://pr#6363
-#    refresh: 10min
-#    components: [lvgl]
 #
+api:
 ota:
-  - platform: esphome
-
+  - platform: esphome  # Your existing OTA method
+  - platform: web_server  # Add this for web-based OTA uploads
 # captive_portal:
-
 spi:
   - id: lcd
     clk_pin: GPIO14
@@ -64,54 +56,39 @@ i2c:
   scan: true
   id: bus_a
 #
+# get the font files from # http://materialdesignicons.com/
 font:
-  
-  - file: 'fonts/AlmaMono-Regular.otf'
-    id: almamono40
-    size: 40
+  - file:
+      type: gfonts
+      family: Roboto
+      weight: 500
+    id: roboto_medium
+    size: 22
+    bpp: 4  
+  - file: "fonts/materialdesignicons-webfont.ttf"
+    id: icons_100
+    size: 100
     bpp: 4
-  - file: 'fonts/AlmaMono-Regular.otf'
-    id: almamono18
-    size: 18
-    bpp: 4
-
-  - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
-    id: weather70
-    size: 70
-    bpp: 4
-    glyphs: &mdi-weather-glyphs
-      - "\U000F0590" # mdi-weather-cloudy
-      - "\U000F0F2F" # mdi-weather-cloudy-alert
-      - "\U000F0E6E" # mdi-weather-cloudy-arrow-right
-      - "\U000F0591" # mdi-weather-fog
-      - "\U000F0592" # mdi-weather-hail
-      - "\U000F0F30" # mdi-weather-hazy
-      - "\U000F0898" # mdi-weather-hurricane
-      - "\U000F0593" # mdi-weather-lightning
-      - "\U000F067E" # mdi-weather-lightning-rainy
-      - "\U000F0594" # mdi-weather-clear-night
-      - "\U000F0F31" # mdi-weather-night-partly-cloudy
-      - "\U000F0595" # mdi-weather-partly-cloudy
-      - "\U000F0F32" # mdi-weather-partly-lightning
-      - "\U000F0F33" # mdi-weather-partly-rainy
-      - "\U000F0F34" # mdi-weather-partly-snowy
-      - "\U000F0F35" # mdi-weather-partly-snowy-rainy
-      - "\U000F0596" # mdi-weather-pouring
-      - "\U000F0597" # mdi-weather-rainy
-      - "\U000F0598" # mdi-weather-snowy
-      - "\U000F0F36" # mdi-weather-snowy-heavy
-      - "\U000F067F" # mdi-weather-snowy-rainy
-      - "\U000F0599" # mdi-weather-sunny
-      - "\U000F0F37" # mdi-weather-sunny-alert
-      - "\U000F14E4" # mdi-weather-sunny-off
-      - "\U000F059A" # mdi-weather-sunset
-      - "\U000F059B" # mdi-weather-sunset-down
-      - "\U000F059C" # mdi-weather-sunset-up
-      - "\U000F0F38" # mdi-weather-tornado
-      - "\U000F059D" # mdi-weather-windy
-      - "\U000F059E" # mdi-weather-windy-variant
- 
-  - file: 'fonts/materialdesignicons-webfont.ttf' # http://materialdesignicons.com/cdn/7.4.47/ 
+    glyphs: [
+      "\U000F0594", # clear-night
+      "\U000F0590", # cloudy
+      "\U000F0F2F", # exceptional
+      "\U000F0591", # fog
+      "\U000F0592", # hail
+      "\U000F0593", # lightning
+      "\U000F067E", # lightning-rainy
+      "\U000F0595", # partlycloudy
+      "\U000F0596", # pouring
+      "\U000F0597", # rainy
+      "\U000F0598", # snowy
+      "\U000F067F", # snowy-rainy
+      "\U000F0599", # sunny
+      "\U000F059D", # windy
+      "\U000F059E", # windy-variant
+      "\U000F14E4", # sunny-off
+      ]
+#      
+  - file: "fonts/materialdesignicons-webfont.ttf" 
     id: light32
     size: 50
     bpp: 4
@@ -122,54 +99,16 @@ font:
       "\U000F12BA", # mdi-string-lights
       "\U000F0210", # mdi-fan
       "\U000F0737", # mdi-up
-      ]          
+      ]
+  - file: 'fonts/AlmaMono-Regular.otf'
+    id: almamono40
+    size: 40
+    bpp: 4
+  - file: 'fonts/AlmaMono-Regular.otf'
+    id: almamono18
+    size: 18
+    bpp: 4             
 #
-color:
-  - id: my_red
-    red: 100%
-    green: 0%
-    blue: 0%
-  - id: my_orange
-    red: 100%
-    green: 50%
-    blue: 0%
-  - id: my_yellow
-    red: 100%
-    green: 100%
-    blue: 0%
-  - id: my_green
-    red: 0%
-    green: 100%
-    blue: 0%
-  - id: my_blue
-    red: 0%
-    green: 0%
-    blue: 100%
-  - id: my_teal
-    red: 0%
-    green: 100%
-    blue: 100%
-  - id: my_gray
-    red: 70%
-    green: 70%
-    blue: 70%
-  - id: my_white
-    red: 100%
-    green: 100%
-    blue: 100%
-  - id: my_black
-    red: 0%
-    green: 0%
-    blue: 0%
-#
-sensor:
-#  - platform: debug
-#    free:
-#      name: "Heap Free"
- #   loop_time:
- #     name: "Loop Time"
-#    psram:
-      #name: "Free PSRAM"
 #
 binary_sensor:
   - platform: status
@@ -181,12 +120,65 @@ globals:
     type: std::string
     initial_value: ""
 #
+# these are exposed to Home Assistant
+# use HA automations to update these fields
+#
+text:
+  - platform: lvgl
+    name: fr_cond_icon
+    widget: lbl_weather_forecast_condition_icon
+    mode: text
+  - platform: lvgl
+    name: fr_cond_name
+    widget: lbl_weather_forecast_condition_name
+    mode: text
+  - platform: lvgl
+    name: fr_tempap
+    widget: lbl_weather_forecast_tempap
+    mode: text
+  - platform: lvgl
+    name: fr_temphi
+    widget: lbl_weather_forecast_temphi
+    mode: text
+  - platform: lvgl
+    name: fr_templo
+    widget: lbl_weather_forecast_templo
+    mode: text
+  - platform: lvgl
+    name: wd_out_now
+    widget: lbl_weather_outdnoor_now
+    mode: text
+  - platform: lvgl
+    name: financeinfo1
+    widget: lbl_financeinfo1
+    mode: text
+  - platform: lvgl
+    name: financeinfo2
+    widget: lbl_financeinfo2
+    mode: text
+  - platform: lvgl
+    name: financeinfo3
+    widget: lbl_financeinfo3
+    mode: text
+  - platform: lvgl
+    name: financeinfo4
+    widget: lbl_financeinfo4
+    mode: text
+  - platform: lvgl
+    name: financeinfo5
+    widget: lbl_financeinfo5
+    mode: text       
+  - platform: lvgl
+    name: officedisplay_text1
+    widget: lbl_officedisplay_text1
+    mode: text           
+#    
+  - platform: lvgl
+    name: page1_weather_line1
+    widget: page1_weather_line1
+    mode: text     
+#
 text_sensor:
-#  - platform: debug
-#    device:
-#      name: "Device Info"
-#    reset_reason:
-#      name: "Reset Reason"  
   - platform: template
     # name: Uptime Human Readable
     id: uptime_human
@@ -212,26 +204,6 @@ text_sensor:
     internal: True
     entity_id: sensor.time
     id: ha_clock_local
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.homeweather_realfeel_temperature_max_0d
-    id: homeweather_realfeel_temperature_max_0d
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.homeweather_realfeel_temperature_min_0d
-    id: homeweather_realfeel_temperature_min_0d    
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.homeweather_condition_day_0d
-    id: homeweather_condition_day_0d
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.homeweather_realfeel_temperature_max_1d
-    id: homeweather_realfeel_temperature_max_1d
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.homeweather_realfeel_temperature_min_1d
-    id: homeweather_realfeel_temperature_min_1d
   - platform: template
     id: nice_date
     internal: true
@@ -256,30 +228,7 @@ text_sensor:
         id(nice_node_status) = "Offline";
       }
       return id(nice_node_status);
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.yahoofinance_2800_hk
-    id: yahoofinance_2800_hk_last
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.yahoofinance_2386_hk
-    id: yahoofinance_2386_hk_last
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.yahoofinance_2388_hk
-    id: yahoofinance_2388_hk_last
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.yahoofinance_audhkd_x
-    id: yahoofinance_AUDHKD_last            
-  - platform: homeassistant
-    internal: True
-    entity_id: sensor.yahoofinance_vdhg_ax
-    id: yahoofinance_VDHG_ASX_last            
-  - platform: homeassistant
-    internal: True
-    entity_id: input_text.screen2_msg1
-    id: text_msg1
+
 #      
 # Define pins for `light display and back LED1
 output:
@@ -363,13 +312,6 @@ touchscreen:
 switch:
   - platform: restart
     name: Restart
-  - platform: template
-    name: "Trigger Office Mode"
-    id: virtual_button_office_mode
-    optimistic: true    
-#
-#
-#font:
 #
 display:
   - platform: ili9xxx
@@ -390,21 +332,16 @@ lvgl:
     - timeout: 30s
       then:
         - lvgl.page.show: page1
-    #- timeout: 60s
-      #then:
+        - logger.log:
+            format: "[Rob] Show Page 1"
+            level: WARN        
         - light.turn_off: led
-        #- lvgl.pause:  
-  # log_level: TRACE
-  # text_font: unscii_8
   align: center
   touchscreens:
     - my_touch  
-#  displays:
-#    - display_id: my_display
   style_definitions:
   - id: header_footer
     bg_color: 0x000000
-    #bg_opa: COVER
     opa: COVER
     border_width: 0
     radius: 0
@@ -415,7 +352,6 @@ lvgl:
     text_color: 0x0000FF
     width: 100%
     height: 35      
-  #buffer_size: 25%
   buffer_size: 15%
   disp_bg_color: 0x000000
   top_layer:
@@ -438,8 +374,6 @@ lvgl:
           outline_width: 0
           id: top_layer
           bg_color: 0x000000
-          #items:
-          #  styles: header_footer
           rows:
             - buttons:
               - id: page_prev
@@ -458,142 +392,215 @@ lvgl:
                   then:
                    lvgl.page.next:      
   pages:
-    - id: loading
+    - id: weather_forecast
+      bg_color: 0x000000
       widgets:
         - obj:
+            align: CENTER
+            width: 100%
+            height: 250
+            pad_all: 0
+            text_color: 0xFFFF00
             bg_color: 0x000000
             bg_opa: COVER
-            opa: COVER
-            border_width: 0
-            pad_all: 1
-            align: bottom_mid
-            height: 460
-            width: 100%
+            text_font: roboto_medium # almamono16
+            layout:
+              pad_column: 0
+              type: GRID
+              grid_rows: [FR(48), FR(13), FR(13), FR(13), FR(13)]
+              grid_columns: [FR(10), FR(40), FR(40), FR(10)]
             widgets:
-            - label:
-                text_align: center
-                text: 'Loading ...'
-                id: loading_nice_node_status
-                #x: 1
-                #y: 435
-                text_color: 0x4d94ff
-                text_font: montserrat_40
-            - label:
-                text_align: center
-                text: 'IP'
-                x: 1
-                y: 35
-                text_color: 0x4d94ff
-                text_font: montserrat_20
-            - label:
-                text_align: center
-                text: 'N/A'
-                id: ip_address_label
-                x: 30
-                y: 35
-                text_color: 0x4d94ff
-            - label:
-                text_align: center
-                #text: 'N/A'
-                #id: ip_address_label
-                x: 30
-                y: 55
-                text_color: 0x4d94ff
-                #text_font: montserrat_20
-                text_font: light32
-                text: "\U000F0769"                
-            - label:
-                # text_align: center
-                text: "long text long textlong text \n new line? I wonder \n long text long text long text"
-                id: test_long_text
-                x: 0
-                y: 100
-                long_mode: wrap
-                height: SIZE_CONTENT
+              - label:
+                  text: "\U000F14E4"
+                  id: lbl_weather_forecast_condition_icon
+                  text_font: icons_100
+                  text_align: CENTER
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: CENTER
+                  grid_cell_y_align: START
+
+              - label:
+                  text: "Unknown"
+                  id: lbl_weather_forecast_condition_name
+                  text_align: CENTER
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 2
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: STRETCH
+                  grid_cell_y_align: CENTER
+
+              - label:
+                  text: "Feels like:"
+                  grid_cell_row_pos: 1
+                  grid_cell_column_pos: 1
+
+              - label:
+                  text: "--.- °C"
+                  id: lbl_weather_forecast_tempap
+                  text_align: RIGHT
+                  grid_cell_row_pos: 1
+                  grid_cell_column_pos: 2
+                  grid_cell_x_align: STRETCH
+
+              - label:
+                  text: "Maximum:"
+                  grid_cell_row_pos: 2
+                  grid_cell_column_pos: 1
+
+              - label:
+                  text: "--.- °C"
+                  id: lbl_weather_forecast_temphi
+                  text_align: RIGHT
+                  grid_cell_row_pos: 2
+                  grid_cell_column_pos: 2
+                  grid_cell_x_align: STRETCH
+
+              - label:
+                  text: "Minimum:"
+                  grid_cell_row_pos: 3
+                  grid_cell_column_pos: 1
+
+              - label:
+                  text: "--.- °C"
+                  id: lbl_weather_forecast_templo
+                  text_align: RIGHT
+                  grid_cell_row_pos: 3
+                  grid_cell_column_pos: 2
+                  grid_cell_x_align: STRETCH
+
+              - label:
+                  text: "Now:"
+                  grid_cell_row_pos: 4
+                  grid_cell_column_pos: 1
+
+              - label:
+                  text: "--.- °C"
+                  id: lbl_weather_outdnoor_now
+                  text_align: RIGHT
+                  grid_cell_row_pos: 4
+                  grid_cell_column_pos: 2
+                  grid_cell_x_align: STRETCH    
+#
+    - id: loading
+      bg_color: 0x000000
+      widgets:
+        - obj:
+            align: CENTER
+            width: 100%
+            height: 250
+            pad_all: 0
+            text_color: 0xFFFF00
+            bg_color: 0x000000
+            bg_opa: COVER
+            text_font: roboto_medium # almamono16
+            layout:
+              pad_column: 0
+              type: GRID
+              grid_rows: [FR(13), FR(13), FR(13), FR(13), FR(13)]
+              grid_columns: [FR(10), FR(40), FR(40), FR(10)]
+            widgets:
+              - label:
+                  text: "IP"
+                  text_font: roboto_medium
+                  text_align: CENTER
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 0
+                  grid_cell_column_span: 1
+                  grid_cell_x_align: CENTER
+                  grid_cell_y_align: START
+              - label:
+                  text: "-"
+                  id: ip_address_label
+                  text_font: roboto_medium
+                  text_align: CENTER
+                  grid_cell_row_pos: 0
+                  grid_cell_column_pos: 1
+                  grid_cell_column_span: 2
+                  grid_cell_x_align: CENTER
+                  grid_cell_y_align: START                  
+#
+#
+    - id: buttons1
+      bg_color: 0x000000
+      widgets:
+        - label:
+            text: "Office"
+            text_font: almamono40            
+            #x: 10
+            y: 20
+            text_align: CENTER
+            text_color: 0xFFFF00            
+        - buttonmatrix:
+            align: CENTER
+            pad_all: 0
+            outline_width: 0
+            border_width: 0
+            id: pagebuttons1
+            bg_color: 0x000000
+            text_color: 0xFFFF00
+            bg_opa: TRANSP
+            text_font: roboto_medium # almamono16
+            items: # set all your buttonmatrix buttons to use your custom defined styles and font
+              bg_color: 0x2F8CD8
+              bg_grad_color: 0x005782
+              bg_grad_dir: VER
+              bg_opa: COVER
+              border_color: 0x0077b3
+              border_width: 1
+              text_color: 0xFFFFFF
+              text_font: roboto_medium
+              pressed:
+                bg_color: 0x006699
+                bg_grad_color: 0x00334d
                 text_color: 0xFFFF00
+              checked:
+                bg_color: 0x1d5f96
+                bg_grad_color: 0x03324A
+                text_color: 0xFFFF00     
+            rows:
+              - buttons:
+                - id: buttonOfficeCeiling
+                  text: "Ceiling"
+                  on_press:
+                    then:
+                      - logger.log:
+                          format: "[Rob] Office Ceiling Light Toggle"
+                          level: WARN
+                      - homeassistant.action:
+                          action: light.toggle
+                          data:
+                            entity_id: light.office_ceiling
+                - id: buttonB
+                  text: "Strip"
+                  on_press:
+                    then:
+                      - logger.log:
+                          format: "[Rob] Toggle Office Strip"
+                          level: WARN
+                      - homeassistant.action:
+                          action: light.toggle
+                          data:
+                            entity_id: light.officestripesp
+              - buttons:
+                - id: button2A
+                  text: "Going Out"
+                  on_press:
+                    then:
+                      - logger.log:
+                          format: "[Rob] Going Out"
+                          level: WARN
+                      - homeassistant.event:
+                          event: esphome.officeCYD.goingout
+                          data:
+                            title: officeCYD.goingout
+                      #- event.trigger:
+                      #    id: going_out_button_event
+                      #    event_type: going_out_button
+
+
 #
-    - id: lovesymbol
-      bg_opa: COVER
-      widgets:
-        - obj:
-            bg_color: 0x000000
-            border_width: 0
-            pad_all: 1
-            align: bottom_mid
-            height: 100%
-            width: 100%
-            widgets:
-            #- image:
-            #    src: lovesymbol3
-            #    bg_opa: COVER
-            #    align: center
-#
-    - id: page2
-      widgets:
-        - obj:
-            bg_color: 0x000000
-            border_width: 0
-            pad_all: 1
-            align: bottom_mid
-            height: 460
-            width: 100%
-            widgets:
-            - label:
-                id: page2_nice_date
-                text_align: left
-                text: 'n/a'
-                x: 1
-                y: 200
-                text_font: montserrat_40                
-            - buttonmatrix:
-                x: 1
-                y: 200
-                width: 100%
-                bg_color: 0xFF0000
-                items:
-                  pressed:
-                    bg_color: 0xFFFF00
-                id: matrix_id
-                rows:
-                  - buttons:
-                    - id: page3_button_1
-                      #text: "\uF04B"
-                      text: "Ceiling"
-                      control:
-                        hidden: false
-                      on_click:
-                        then:
-                          # - lvgl.page.previous
-                          - logger.log: "Button 1 clicked"
-                          #- light.toggle: led
-                          - homeassistant.service:
-                              service: homeassistant.toggle
-                              # remember to enable services for this device in HA https://community.home-assistant.io/t/esphome-call-service-solved/708802/5
-                              data:
-                                entity_id: light.office_ceiling
-                    - id: page3_button_2
-                      #text: "\uF04C"
-                      text: "Office Mode"
-                      control:
-                        popover: true                                        
-                      on_click:
-                        then:
-                          - logger.log: "Button 2 Office Mode clicked"
-                          - switch.toggle: virtual_button_office_mode
-                    - id: page3_button_3
-                      #text: "\uF04C"
-                      text: "Strip"
-                      control:
-                        popover: true                                        
-                      on_click:
-                        then:
-                          # - lvgl.page.previous
-                          - logger.log: "Button 3 clicked"
-                          - light.toggle: led
-                          - homeassistant.service:
-                              service: homeassistant.toggle
-                              data:
-                                entity_id: light.officestripesp                        
     - id: page1
       widgets:
         - obj:
@@ -639,29 +646,12 @@ lvgl:
                 x: 1
                 y: 130
             - label:
-                text_align: right
-                text: 'n/a'
-                text_font: montserrat_18
-                id: page1_weather_line2
-                text_color: 0xFFFF00
-                x: 1
-                y: 150
-            - label:
-                x: 1
-                y: 171
-                height: size_content
-                width: 100%
-                long_mode: wrap
-                id: page1_weather_line3
-                text_color: 0xFFFF00
-                text: 'N/A'
-            - label:
                 x: 1
                 y: 240
                 height: size_content
                 width: 100%
                 # long_mode: scroll_circular
-                id: page1_yahoofinance_2800_hk_last
+                id: lbl_financeinfo1
                 text_color: 0xFFFF00
                 text: 'N/A'
                 text_font: almamono18
@@ -671,7 +661,7 @@ lvgl:
                 height: size_content
                 width: 100%
                 # long_mode: scroll_circular
-                id: page1_yahoofinance_2386_hk_last
+                id: lbl_financeinfo2
                 text_color: 0xFFFF00
                 text: 'N/A'
                 text_font: almamono18                
@@ -681,7 +671,7 @@ lvgl:
                 height: size_content
                 width: 100%
                 # long_mode: scroll_circular
-                id: page1_yahoofinance_2388_hk_last
+                id: lbl_financeinfo3
                 text_color: 0xFFFF00
                 text: 'N/A'
                 text_font: almamono18
@@ -691,7 +681,7 @@ lvgl:
                 height: size_content
                 width: 100%
                 # long_mode: scroll_circular
-                id: page1_yahoofinance_audhkd_last
+                id: lbl_financeinfo4
                 text_color: 0xFFFF00
                 text: 'N/A'
                 text_font: almamono18
@@ -701,7 +691,7 @@ lvgl:
                 height: size_content
                 width: 100%
                 # long_mode: scroll_circular
-                id: page1_yahoofinance_vdhg_asx_last
+                id: lbl_financeinfo5
                 text_color: 0xFFFF00
                 text: 'N/A'
                 text_font: almamono18                
@@ -712,7 +702,7 @@ lvgl:
                 width: 100%
                 # long_mode: scroll_circular
                 long_mode: wrap
-                id: page1_text_msg1
+                id: lbl_officedisplay_text1
                 text_color: 0xFFFF00
                 text: 'N/A'
                 text_font: montserrat_14
@@ -727,16 +717,6 @@ script:
           text:
             format: "%s"
             args: [ 'id(nice_date).state.c_str()' ]              
-      - lvgl.label.update:
-          id: page2_nice_date
-          text:
-            format: "%s"
-            args: [ 'id(nice_date).state.c_str()' ]
-      - lvgl.label.update:
-          id: loading_nice_node_status
-          text:
-            format: "%s"
-            args: [ 'id(nice_node_status).c_str()' ]
 #
 # Page 1 Page 1 Page 1 Page 1 Page 1 Page 1 Page 1 Page 1 
 #
@@ -755,68 +735,9 @@ script:
           text:
             format: "HKG %s"
             args: [ 'id(ha_clock_local).state.c_str()' ]
-
-      - lvgl.label.update:
-          id: page1_weather_line1
-          text:
-            format: "Today %s°C to %s°C"
-            args: [ 'id(homeweather_realfeel_temperature_min_0d).state.c_str()', 'id(homeweather_realfeel_temperature_max_0d).state.c_str()' ]            
-      - lvgl.label.update:
-          id: page1_weather_line2
-          text:
-            format: "Tomorrow %s°C to %s°C"
-            args: [ 'id(homeweather_realfeel_temperature_min_1d).state.c_str()', 'id(homeweather_realfeel_temperature_max_1d).state.c_str()' ]           
-      - lvgl.label.update:
-          id: test_long_text
-          text:
-            format: "Today %s°C to %s°C \n Tomorrow Min %s°C Max %s°C"
-            args: [ 'id(homeweather_realfeel_temperature_min_0d).state.c_str()', 'id(homeweather_realfeel_temperature_max_0d).state.c_str()', 'id(homeweather_realfeel_temperature_min_1d).state.c_str()', 'id(homeweather_realfeel_temperature_max_1d).state.c_str()' ]            
-
-
-      - lvgl.label.update:
-          id: page1_yahoofinance_2800_hk_last
-          text:
-            format: "2800   %s"
-            args: [ 'id(yahoofinance_2800_hk_last).state.c_str()' ]
-      - lvgl.label.update:
-          id: page1_yahoofinance_2386_hk_last
-          text:
-            format: "2386   %s"
-            args: [ 'id(yahoofinance_2386_hk_last).state.c_str()' ]            
-      - lvgl.label.update:
-          id: page1_yahoofinance_2388_hk_last
-          text:
-            format: "2388   %s"
-            args: [ 'id(yahoofinance_2388_hk_last).state.c_str()' ]                        
-      - lvgl.label.update:
-          id: page1_yahoofinance_audhkd_last
-          text:
-            format: "AUDHKD %s"
-            args: [ 'id(yahoofinance_AUDHKD_last).state.c_str()' ]
-      - lvgl.label.update:
-          id: page1_yahoofinance_vdhg_asx_last
-          text:
-            format: "VDHG   %s"
-            args: [ 'id(yahoofinance_VDHG_ASX_last).state.c_str()' ]            
 #
-# Update each minute ##################
-  - id: time_minute_update
-    then:
-      - lvgl.label.update:
-          id: page1_weather_line3
-          text:
-            format: "%s"
-            args: [ 'id(homeweather_condition_day_0d).state.c_str()' ]
-      - lvgl.label.update:
-          id: page1_text_msg1
-          text:
-            format: "%s"
-            args: [ 'id(text_msg1).state.c_str()' ]
-
+#
 time:
-#  - platform: sntp
-#    timezone: Asia/Kolkata
-#    id: india_time  
   - platform: sntp
     id: sntp_time
     on_time:
@@ -835,7 +756,6 @@ time:
     id: homeassistant_time
     on_time_sync:
       - script.execute: time_update
-      - script.execute: time_minute_update
     on_time:
       - minutes: '*'
         seconds: '*'
@@ -844,21 +764,14 @@ time:
   - platform: homeassistant
     id: time_minute
     on_time_sync:
-      - script.execute: time_minute_update
       - lvgl.page.show:
           id: page1
-      - logger.log: "Time Sync Time Sync Time Sync Time Sync Time Sync Time Sync"
+      - logger.log:
+          format: "[Rob] Time Sync Time Sync Time Sync Time Sync Time Sync Time Sync"
+          level: WARN        
     on_time:
       - minutes: '*'
         then:
-          - script.execute: time_minute_update
-          #- lvgl.image.update:
-              #id: page3_image
-              #src: img_nc_front
-          
-#image:
-#  - file: lovesymbol3.png
-#    id: lovesymbol3
-#    #resize: 240x160
-#    type: RGB565
+          #- script.execute: time_minute_update
+#          
 #
